@@ -1,11 +1,22 @@
 /** @jsxImportSource @opentui/solid */
 
 import { Plugin } from "@opencode/plugin/tui";
-import { TextAttributes, type RGBA } from "@opentui/core";
+import { TextAttributes, type RGBA, type MouseEvent } from "@opentui/core";
 import { Show, createSignal } from "solid-js";
 
 const id = "opencode-session-tokens-sidebar";
 const REFRESH_DELAY_MS = 200;
+
+export type CacheHitDisplay = "percentage" | "multiplier";
+export const DEFAULT_CACHE_HIT_DISPLAY: CacheHitDisplay = "percentage";
+
+export function formatCacheHit(cacheRead: number, input: number, cacheWrite: number, display: CacheHitDisplay): string {
+  const misses = input + cacheWrite;
+  if (cacheRead === 0 && misses === 0) return "—";
+  if (display === "percentage") return `${(cacheRead / (cacheRead + misses) * 100).toFixed(1)}%`;
+  if (misses === 0) return "∞";
+  return `${(cacheRead / misses).toFixed(1)}×`;
+}
 
 interface UsageState {
   status: "loading" | "ready" | "error";
@@ -65,6 +76,13 @@ export default Plugin.define({
     let refreshTimer: ReturnType<typeof setTimeout> | undefined;
     let knownSessionIDs = new Set<string>();
     const [state, setState] = createSignal<UsageState>({ ...EMPTY });
+    const [cacheHitDisplay, setCacheHitDisplay] = createSignal<CacheHitDisplay>(DEFAULT_CACHE_HIT_DISPLAY);
+
+    const toggleCacheHitDisplay = (event: MouseEvent) => {
+      if (event.button !== 0) return;
+      event.stopPropagation();
+      setCacheHitDisplay((current) => current === "percentage" ? "multiplier" : "percentage");
+    };
 
     const scheduleRefresh = () => {
       if (disposed || !lastSessionID) return;
@@ -208,9 +226,7 @@ export default Plugin.define({
         };
         const cacheRatio = () => {
           const usage = state();
-          const base = usage.input + usage.cacheWrite;
-          if (base === 0) return usage.cacheRead > 0 ? "∞" : "—";
-          return `${(usage.cacheRead / base).toFixed(1)}×`;
+          return formatCacheHit(usage.cacheRead, usage.input, usage.cacheWrite, cacheHitDisplay());
         };
         const costColor = () => {
           if (state().cost < 5) return context.theme.text.feedback.info.default;
@@ -237,7 +253,7 @@ export default Plugin.define({
                   <UsageRow label="↓ out" value={fmt(state().output)} labelColor={context.theme.text.subdued} valueColor={context.theme.text.default} />
                   <UsageRow label="▤ cache write" value={fmt(state().cacheWrite)} labelColor={context.theme.text.subdued} valueColor={context.theme.text.default} />
                   <UsageRow label="▤ cache read" value={fmt(state().cacheRead)} labelColor={context.theme.text.subdued} valueColor={context.theme.text.default} />
-                  <UsageRow label="ø cache hit ratio" value={cacheRatio()} labelColor={context.theme.text.subdued} valueColor={context.theme.text.default} />
+                  <UsageRow label={cacheHitDisplay() === "percentage" ? "ø cache hit % ⇄" : "ø cache hit × ⇄"} value={cacheRatio()} labelColor={context.theme.text.subdued} valueColor={context.theme.text.default} onActivate={toggleCacheHitDisplay} />
                   <Show when={state().reasoning > 0}>
                     <UsageRow label="✦ think" value={fmt(state().reasoning)} labelColor={context.theme.text.subdued} valueColor={context.theme.text.default} />
                   </Show>
@@ -278,9 +294,9 @@ export default Plugin.define({
   },
 });
 
-function UsageRow(props: { label: string; value: string; labelColor: RGBA; valueColor: RGBA }) {
+export function UsageRow(props: { label: string; value: string; labelColor: RGBA; valueColor: RGBA; onActivate?: (event: MouseEvent) => void }) {
   return (
-    <box flexDirection="row" justifyContent="space-between">
+    <box flexDirection="row" justifyContent="space-between" onMouseUp={props.onActivate}>
       <text fg={props.labelColor}>{props.label}</text>
       <text fg={props.valueColor}>{props.value}</text>
     </box>

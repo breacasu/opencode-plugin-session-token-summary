@@ -11,7 +11,7 @@ It aggregates the root session and all nested subagent sessions.
 
 - Compact OpenCode sidebar panel with live session updates
 - Input, output, reasoning, cache read, cache write, and total token counts
-- Cache hit ratio and assistant turn count
+- Cache hit percentage (or click-to-toggle multiplier) and assistant turn count
 - Usage aggregated across the root session and every nested subagent
 - Reported API costs for metered providers
 - API-equivalent cost estimates for quota and subscription-backed providers
@@ -42,6 +42,13 @@ OpenCode 2 resolves the conventional `tui.tsx` entrypoint from the plugin
 directory. A direct file path is not loaded by the tested OpenCode 2.0.20
 plugin resolver. The published `0.4.x` package targets the legacy TUI plugin
 API and cannot be used with OpenCode 2.
+
+The cache row defaults to the usual hit rate: cache reads divided by cache
+reads plus input and cache writes. Click the `⇄` cache row to switch between
+percentage and the previous `×` multiplier for the current UI session. The
+choice stays in effect across sidebar and session re-renders until the plugin
+is reloaded. When no tokens have been counted, either view shows `—`;
+all-cache-read usage shows `100.0%` or `∞` in multiplier mode.
 
 ## OpenCode V1 Install
 

@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { RGBA } from "@opentui/core";
+import { testRender } from "@opentui/solid";
+import { jsx } from "@opentui/solid/jsx-runtime";
 import type {
   AssistantMessage,
   Model,
@@ -13,6 +16,46 @@ import {
   fetchDescendants,
   sumSessions,
 } from "../usage";
+import { DEFAULT_CACHE_HIT_DISPLAY, formatCacheHit, UsageRow } from "../tui";
+
+describe("cache hit display", () => {
+  test("activates a usage row through OpenTUI mouse-up dispatch", async () => {
+    let activations = 0;
+    const renderUsageRow: () => ReturnType<typeof jsx> = () =>
+      jsx(UsageRow as (props: Record<string, unknown>) => unknown, {
+        label: "cache hit",
+        value: "85.5%",
+        labelColor: RGBA.fromInts(255, 255, 255),
+        valueColor: RGBA.fromInts(255, 255, 255),
+        onActivate: () => activations++,
+      });
+    const setup = await testRender(renderUsageRow, { width: 40, height: 4 });
+
+    try {
+      await setup.mockMouse.click(1, 0);
+      expect(activations).toBe(1);
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
+
+  test("starts in percentage mode", () => {
+    expect(DEFAULT_CACHE_HIT_DISPLAY).toBe("percentage");
+  });
+
+  test("treats cache reads as hits and input plus cache writes as misses", () => {
+    expect(formatCacheHit(590, 90, 10, "percentage")).toBe("85.5%");
+    expect(formatCacheHit(590, 90, 10, "multiplier")).toBe("5.9×");
+    expect(formatCacheHit(0, 9, 1, "percentage")).toBe("0.0%");
+  });
+
+  test("keeps zero-token and all-hit cases meaningful in both views", () => {
+    expect(formatCacheHit(0, 0, 0, "percentage")).toBe("—");
+    expect(formatCacheHit(0, 0, 0, "multiplier")).toBe("—");
+    expect(formatCacheHit(10, 0, 0, "percentage")).toBe("100.0%");
+    expect(formatCacheHit(10, 0, 0, "multiplier")).toBe("∞");
+  });
+});
 
 function assistant(id: string): AssistantMessage {
   return {
