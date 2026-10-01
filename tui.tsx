@@ -1,6 +1,6 @@
 /** @jsxImportSource @opentui/solid */
 
-import { Plugin } from "@opencode-ai/plugin/tui";
+import { Plugin } from "@opencode/plugin/tui";
 import { TextAttributes, type RGBA } from "@opentui/core";
 import { Show, createSignal } from "solid-js";
 

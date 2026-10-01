@@ -23,23 +23,25 @@ It aggregates the root session and all nested subagent sessions.
 
 | OpenCode version | Plugin version | Installation |
 | --- | --- | --- |
-| OpenCode 2 beta (`opencode2`) | `0.5.0` and later | Use the V2 instructions below. |
+| OpenCode 2 | `0.5.0` and later | V2 API; tested with OpenCode 2.0.20. |
 | OpenCode V1 (`opencode`) | `0.4.1` | Install the pinned legacy package with the V1 instructions below. |
 
 ## OpenCode 2 Install
 
-For a local checkout, add its TUI entrypoint to `~/.config/opencode/cli.json`:
+For a local checkout, add the plugin directory to `~/.config/opencode/cli.json`:
 
 ```json
 {
   "plugins": [
-    "/absolute/path/to/opencode-plugin-session-token-summary/tui.tsx"
+    "/absolute/path/to/opencode-plugin-session-token-summary"
   ]
 }
 ```
 
-The published `0.4.x` package targets the legacy TUI plugin API and cannot be
-used with OpenCode 2.
+OpenCode 2 resolves the conventional `tui.tsx` entrypoint from the plugin
+directory. A direct file path is not loaded by the tested OpenCode 2.0.20
+plugin resolver. The published `0.4.x` package targets the legacy TUI plugin
+API and cannot be used with OpenCode 2.
 
 ## OpenCode V1 Install
 
@@ -67,6 +69,11 @@ users are not necessarily charged the estimated amount. If catalog pricing
 cannot be matched, only the reported cost is shown.
 
 ## Development
+
+OpenTUI 0.5.12 requires Node >=26.4.0 or Bun >=1.3.0. Local installs with npm
+under an older Node version may report `EBADENGINE` or fail when `engine-strict`
+is enabled. This release was checked with Bun 1.3.14; OpenCode supplies the TUI
+runtime, so users do not need to install Node 26 just to run the plugin.
 
 ```sh
 npm install
