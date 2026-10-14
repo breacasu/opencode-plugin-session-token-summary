@@ -10,8 +10,9 @@ It aggregates the root session and all nested subagent sessions.
 ## Features
 
 - Compact OpenCode sidebar panel with live session updates
+- Click the panel title to customize visible metrics and see the plugin version
 - Input, output, reasoning, cache read, cache write, and total token counts
-- Cache hit ratio and assistant turn count
+- Cache hit (ratio or percentage) and assistant turn count
 - Usage aggregated across the root session and every nested subagent
 - Reported API costs for metered providers
 - API-equivalent cost estimates for quota and subscription-backed providers
@@ -59,11 +60,36 @@ unversioned package in V1, because later releases target OpenCode 2.
 
 ## Notes
 
+Click **Session Token Summary** in the sidebar, or press `Ctrl+P` and choose
+**Customize Session Token Summary**, to open the settings popup. Toggle metrics
+with the mouse or use arrow keys and Space. Preferences apply immediately and
+are saved across restarts. Choose **Close** or press Esc to dismiss the popup.
+In short terminals, use arrow keys or the mouse wheel to scroll through settings.
+
+**Show/hide** controls individual metrics; thinking tokens are off by default
+for new settings. **Options** lets you hide zero-valued rows or display cache
+hit as a percentage. Both options are off by default. The percentage is
+cache reads divided by input tokens plus cache writes and cache reads; the ratio
+is cache reads divided by input tokens plus cache writes. Existing saved metric
+choices are preserved.
+
+**Show cache-miss notices** is off by default. It warns about new suspected misses
+of at least 20K tokens, comparing consecutive completed requests within each
+session, including subagents. It skips the first request, resets after compaction,
+and requires evidence of cache activity. Opening a session or enabling the option
+does not replay historical warnings. Inspired by
+[Pi’s cache-miss heuristic](https://github.com/badlogic/pi-mono/blob/b45e0ebcc5ae2fc42a6f2f23104d10e656e6bedb/packages/coding-agent/src/core/cache-stats.ts),
+this estimates prompt overlap, not confirmed provider failures. Model switches
+and idle gaps are context hints, not proof of the cause. No cost-loss estimate is
+shown; providers that do not report caching cannot be assessed.
+
 The panel reads V2 session totals and paginated assistant messages for the
 selected session and its nested descendants. It limits descendant requests to
 four concurrent operations and keeps the last complete snapshot if a background
 refresh fails. It works with the connected server, including remote servers,
 and needs no separate API key.
+
+With cache-miss notices enabled, message fetching also includes compaction records.
 
 Nonzero cost reported by OpenCode is shown as `$ cost`. For messages with an
 explicit zero cost, the plugin uses OpenCode's model

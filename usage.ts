@@ -20,6 +20,15 @@ export type DescendantData = {
   sessions: ReadonlyArray<SessionInfo>;
   messages: ReadonlyArray<SessionMessageAssistant>;
   turns: number;
+  cacheMisses: ReadonlyArray<CacheMiss>;
+};
+
+export type CacheMiss = {
+  sessionID: string;
+  messageID: string;
+  missedTokens: number;
+  modelChanged: boolean;
+  idleMs: number;
 };
 
 export type CostMode = "reported" | "estimated" | "mixed";
@@ -177,20 +186,60 @@ export async function mapWithConcurrency<Input, Output>(
   return results;
 }
 
-export async function fetchAssistantMessages(
+// Pi-style prompt-overlap heuristic: token counts cannot prove a cache failure.
+export function detectCacheMisses(
+  messages: ReadonlyArray<SessionMessageInfo>,
+  sessionID: string,
+): CacheMiss[] {
+  const misses: CacheMiss[] = [];
+  let previous: SessionMessageAssistant | undefined;
+  let previousPrompt = 0;
+  let reportedCache = false;
+  for (const message of [...messages].sort((a, b) =>
+    a.time.created - b.time.created || a.id.localeCompare(b.id)
+  )) {
+    if (message.type === "compaction" && message.status === "completed") {
+      previous = undefined;
+      reportedCache = false;
+      continue;
+    }
+    if (!isAssistant(message) || !message.tokens || message.error || message.time.completed === undefined) continue;
+    const tokens = message.tokens;
+    const prompt = tokens.input + tokens.cache.read + tokens.cache.write;
+    if (prompt <= 0) continue;
+    const hasCache = tokens.cache.read + tokens.cache.write > 0;
+    const missedTokens = Math.min(previousPrompt, prompt) - tokens.cache.read;
+    if (previous && (hasCache || reportedCache) && missedTokens > 1024) {
+      misses.push({
+        sessionID,
+        messageID: message.id,
+        missedTokens,
+        modelChanged: message.model.providerID !== previous.model.providerID || message.model.id !== previous.model.id,
+        idleMs: Math.max(0, message.time.created - previous.time.created),
+      });
+    }
+    previous = message;
+    previousPrompt = prompt;
+    reportedCache ||= hasCache;
+  }
+  return misses;
+}
+
+export async function fetchSessionMessages(
   client: OpenCodeClient,
   sessionID: string,
-): Promise<SessionMessageAssistant[]> {
-  const messages: SessionMessageAssistant[] = [];
+  includeCompactions = false,
+): Promise<SessionMessageInfo[]> {
+  const messages: SessionMessageInfo[] = [];
   let cursor: string | undefined;
   do {
     const page = await client.message.list({
       sessionID,
-      type: "assistant",
+      ...(!includeCompactions ? { type: "assistant" as const } : {}),
       limit: 100,
       ...(cursor ? { cursor } : { order: "desc" }),
     });
-    messages.push(...page.data.filter(isAssistant));
+    messages.push(...page.data.filter((message) => isAssistant(message) || includeCompactions && message.type === "compaction"));
     cursor = page.cursor.next ?? undefined;
   } while (cursor);
   return messages;
@@ -199,6 +248,7 @@ export async function fetchAssistantMessages(
 export async function fetchDescendants(
   client: OpenCodeClient,
   rootID: string,
+  includeCompactions = false,
 ): Promise<DescendantData> {
   const out: SessionInfo[] = [];
   const visited = new Set([rootID]);
@@ -232,10 +282,15 @@ export async function fetchDescendants(
     level = nextLevel;
   }
 
-  const messages = (await mapWithConcurrency(out, (session) =>
-    fetchAssistantMessages(client, session.id)
-  )).flat();
+  const histories = await mapWithConcurrency(out, async (session) => {
+    const messages = await fetchSessionMessages(client, session.id, includeCompactions);
+    return {
+      messages: messages.filter(isAssistant),
+      cacheMisses: includeCompactions ? detectCacheMisses(messages, session.id) : [],
+    };
+  });
+  const messages = histories.flatMap((history) => history.messages);
   const turns = messages.length;
 
-  return { sessions: out, messages, turns };
+  return { sessions: out, messages, turns, cacheMisses: histories.flatMap((history) => history.cacheMisses) };
 }
