@@ -5,7 +5,7 @@
 An OpenCode TUI plugin that adds a compact session-usage panel to the sidebar.
 It aggregates the root session and all nested subagent sessions.
 
-![alt text](image.png)
+![Session Token Summary sidebar panel](sidebar.png)
 
 ## Features
 
@@ -65,6 +65,8 @@ Click **Session Token Summary** in the sidebar, or press `Ctrl+P` and choose
 with the mouse or use arrow keys and Space. Preferences apply immediately and
 are saved across restarts. Choose **Close** or press Esc to dismiss the popup.
 In short terminals, use arrow keys or the mouse wheel to scroll through settings.
+
+![Session Token Summary settings modal](settings.png)
 
 **Show/hide** controls individual metrics; thinking tokens are off by default
 for new settings. **Options** lets you hide zero-valued rows or display cache
