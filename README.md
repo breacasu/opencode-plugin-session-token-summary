@@ -28,24 +28,23 @@ It aggregates the root session and all nested subagent sessions.
 
 ## OpenCode 2 Install
 
-For a local checkout, run `npm ci`, then replace the existing package entry in
-`~/.config/opencode/cli.json` with the checkout directory. Preserve other plugins and settings:
+Add the npm package to `~/.config/opencode/cli.json`, or replace its existing
+entry. Preserve other plugins and settings:
 
 ```json
 {
   "$schema": "https://opencode.ai/v2/cli.json",
   "plugins": [
-    "/absolute/path/to/opencode-plugin-session-token-summary"
+    "opencode-plugin-session-token-summary@^2"
   ]
 }
 ```
 
-Use the directory, not `tui.tsx`: OpenCode V2 resolves the directory's `tui`
-entrypoint and skips direct-file TUI entries. Restart the TUI if it does not reload.
+OpenCode installs the package from npm automatically. Restart the TUI if it does
+not reload.
 
-After `2.0.0` is published, you can use `opencode-plugin-session-token-summary@^2`
-instead of the local path. The published `0.4.x` package targets the legacy TUI
-plugin API and cannot be used with OpenCode 2.
+The `0.4.x` package targets the legacy TUI plugin API and cannot be used with
+OpenCode 2.
 
 ## OpenCode V1 Install
 
@@ -56,8 +55,7 @@ OpenCode V1 users must install the final legacy release, `0.4.1`:
 3. Enter `opencode-plugin-session-token-summary@0.4.1`.
 
 This creates an entry in `~/.config/opencode/tui.json`. Do not install an
-unversioned package in V1 after `2.0.0` is published, because later releases
-target OpenCode 2.
+unversioned package in V1, because later releases target OpenCode 2.
 
 ## Notes
 
@@ -82,6 +80,11 @@ npm install
 npm run check
 npm run pack:check
 ```
+
+To load a local checkout in OpenCode 2, run `npm ci`, then replace the npm entry
+in `~/.config/opencode/cli.json` with the checkout's absolute directory path.
+Use the directory, not `tui.tsx`: OpenCode V2 resolves the directory's `tui`
+entrypoint and skips direct-file TUI entries. Restart the TUI if it does not reload.
 
 ## License
 
