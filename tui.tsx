@@ -201,6 +201,7 @@ export default Plugin.define({
       context.ui.dialog.set({ size: "medium", centered: true });
     };
     context.keymap.layer(() => ({
+      mode: "global",
       commands: [{
         id: `${id}.settings`,
         title: "Customize Session Token Summary",
