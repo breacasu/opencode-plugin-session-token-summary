@@ -315,7 +315,7 @@ export default Plugin.define({
     });
 
     const stopSlot = context.ui.slot({
-      before: "sidebar.content",
+      prepend: "sidebar.content",
       render: (props) => {
         createEffect(() => {
           const sessionID = props.sessionID;
